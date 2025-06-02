@@ -1,12 +1,10 @@
 from flask import Flask, jsonify, render_template, request
 import requests
-import os
+from datetime import datetime
 from dotenv import load_dotenv
+import os
 
-# Define API URL.
-TRIVIA_URL = 'https://api.api-ninjas.com/v1/quotes'
-
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
 
 
@@ -83,30 +81,22 @@ def get_weather():
 @app.route('/quote')
 def get_quote():
     try:
-        # Using API Ninjas Quotes API
-        response = requests.get(
-            TRIVIA_URL,
-            headers={'X-Api-Key': '5Rj8e5dMU+Sa6zqzQzEWNg==SKafWBb5psM9xbwQ'}
-        )
+        api_key = os.getenv('API_NINJAS_QUOTES_KEY')
+        if not api_key:
+            return jsonify({'error': 'API key not found'}), 500
+            
+        api_url = 'https://api.api-ninjas.com/v1/quotes'
+        response = requests.get(api_url, headers={'X-Api-Key': api_key})
         
-        if response.status_code == 200:
-            data = response.json()
-            if data and isinstance(data, list) and len(data) > 0:
-                quote_data = data[0]  # The API returns an array with a single quote object
-                return jsonify({
-                    'quote': quote_data.get('quote', ''),
-                    'author': quote_data.get('author', 'Unknown'),
-                    'category': quote_data.get('category', ''),
-                    'status': 'success'
-                })
-            else:
-                return jsonify({
-                    'error': 'No quotes found',
-                    'status': 'error'
-                }), 404
+        if response.status_code == requests.codes.ok:
+            return jsonify({
+                'quote': response.json()[0].get('quote', ''),
+                'author': response.json()[0].get('author', 'Unknown'),
+                'status': 'success'
+            })
         else:
             return jsonify({
-                'error': f'Failed to fetch quote: {response.text}',
+                'error': response.text,
                 'status': 'error',
                 'status_code': response.status_code
             }), response.status_code
