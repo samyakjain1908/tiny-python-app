@@ -1,6 +1,9 @@
+# GitHub Actions Workflow: Build, Push, and Deploy Docker Image to Azure VM
+# This workflow builds a Docker image, pushes it to Docker Hub, and deploys it to an Azure VM via SSH.
 name: Docker Image CI
 
 on:
+  # Trigger workflow on push or pull request to main branch
   push:
     branches: [ "main" ]
   pull_request:
@@ -10,34 +13,59 @@ jobs:
   build_and_push:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      # Step 1: Checkout the repository code
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v2
+      # Step 2: Set up QEMU (for cross-platform builds)
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      # Step 3: Set up Docker Buildx (for advanced Docker build features)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-    - name: Login to Docker Hub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+      # Step 4: Log in to Docker Hub using secrets
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        push: true
-        tags: ${{ secrets.DOCKER_USERNAME }}/tiny-python-app:latest
-        # Pass API keys as build arguments if they are needed during build time
-        # and not just runtime. Ensure your Dockerfile can accept these args.
-        # build-args: |
-        #   OPENWEATHER_API_KEY=${{ secrets.OPENWEATHER_API_KEY }}
-        #   API_NINJAS_QUOTES_KEY_BASE64=${{ secrets.API_NINJAS_QUOTES_KEY_BASE64 }}
+      # Step 5: Build and push the Docker image to Docker Hub
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/tiny-python-app:latest
+          # Uncomment and edit the following lines if you need to pass API keys as build arguments
+          # build-args: |
+          #   OPENWEATHER_API_KEY=${{ secrets.OPENWEATHER_API_KEY }}
+          #   API_NINJAS_QUOTES_KEY_BASE64=${{ secrets.API_NINJAS_QUOTES_KEY_BASE64 }}
 
-    # If you need to pass runtime environment variables to a deployment platform (e.g., Kubernetes, ECS)
-    # you would typically do that in a subsequent deployment step, not directly in the image build.
-    # The current Dockerfile expects .env file for runtime config, which is suitable for local Docker runs
-    # or platforms that can inject .env files or equivalent environment variables into the container.
+      # Step 6: Deploy to Azure VM via SSH
+      # This step connects to your Azure VM and runs Docker commands to update the running container.
+      - name: Deploy to Azure VM via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AZURE_VM_IP }}          # Azure VM public IP
+          username: ${{ secrets.AZURE_VM_USERNAME }} # Azure VM username
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}       # Private SSH key (in GitHub secrets)
+          script: |
+            IMAGE_NAME=tiny-python-app
+            # Log in to Docker Hub
+            docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+            # Pull the latest image
+            docker pull ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:latest
+            # Stop and remove existing container if it exists
+            docker stop my-python-app || true
+            docker rm my-python-app || true
+            # Run the new container, mapping port 80 on the VM to port 5000 in the container
+            docker run -d --name my-python-app -p 80:5000 ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:latest
+
+      # Notes:
+      # - The current Dockerfile expects a .env file for runtime config, which is suitable for local Docker runs
+      #   or platforms that can inject .env files or equivalent environment variables into the container.
+      # - If you need to pass runtime environment variables to a deployment platform (e.g., Kubernetes, ECS),
+      #   you would typically do that in a subsequent deployment step, not directly in the image build.
