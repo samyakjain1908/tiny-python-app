@@ -3,6 +3,7 @@ import requests
 from datetime import datetime
 from dotenv import load_dotenv
 import os
+import base64
 
 # Load environment variables from .env file
 load_dotenv()
@@ -81,9 +82,14 @@ def get_weather():
 @app.route('/quote')
 def get_quote():
     try:
-        api_key = os.getenv('API_NINJAS_QUOTES_KEY')
-        if not api_key:
-            return jsonify({'error': 'API key not found'}), 500
+        api_key_base64 = os.getenv('API_NINJAS_QUOTES_KEY_BASE64')
+        if not api_key_base64:
+            return jsonify({'error': 'Base64 encoded API key not found'}), 500
+        try:
+            api_key = base64.b64decode(api_key_base64).decode('utf-8')
+        except Exception as e:
+            return jsonify({'error': f'Error decoding API key: {str(e)}'}), 500
+        
             
         api_url = 'https://api.api-ninjas.com/v1/quotes'
         response = requests.get(api_url, headers={'X-Api-Key': api_key})

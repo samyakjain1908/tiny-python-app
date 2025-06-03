@@ -8,19 +8,37 @@ A lightweight Flask-based web application that provides weather information and 
 - **Quote Service**: Fetch random inspirational quotes using API Ninjas Quotes API
 - **Simple Web Interface**: Clean and responsive web interface
 - **Environment Variable Support**: Secure API key management using `.env` file
+- **Docker Support**: Easy containerization with Docker
 
 ## Prerequisites
 
 - Python 3.7 or higher
 - pip (Python package installer)
+- Docker (optional, for containerization)
 
-## Installation
+## Docker Installation
+
+1. Build the Docker image:
+   ```bash
+   docker build -t tiny-python-app .
+   ```
+
+2. Run the container:
+   ```bash
+   docker run -d -p 5000:5000 --env-file .env tiny-python-app
+   ```
+
+   The application will be available at http://localhost:5000
+
+## Local Installation
 
 1. Clone the repository:
    ```bash
    git clone https://github.com/samyakjain1908/tiny-python-app.git
    cd tiny-python-app
    ```
+
+   Or if you want to run it locally without Docker:
 
 2. Create a virtual environment (recommended):
    ```bash

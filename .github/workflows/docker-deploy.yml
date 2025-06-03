@@ -1,0 +1,43 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build_and_push:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: true
+        tags: ${{ secrets.DOCKER_USERNAME }}/tiny-python-app:latest
+        # Pass API keys as build arguments if they are needed during build time
+        # and not just runtime. Ensure your Dockerfile can accept these args.
+        # build-args: |
+        #   OPENWEATHER_API_KEY=${{ secrets.OPENWEATHER_API_KEY }}
+        #   API_NINJAS_QUOTES_KEY_BASE64=${{ secrets.API_NINJAS_QUOTES_KEY_BASE64 }}
+
+    # If you need to pass runtime environment variables to a deployment platform (e.g., Kubernetes, ECS)
+    # you would typically do that in a subsequent deployment step, not directly in the image build.
+    # The current Dockerfile expects .env file for runtime config, which is suitable for local Docker runs
+    # or platforms that can inject .env files or equivalent environment variables into the container.
