@@ -166,7 +166,24 @@ def get_quote():
         REQUEST_LATENCY.labels(endpoint='/quote').observe(time.time() - start_time)
 
 
+import threading
+import logging
+
+def background_service():
+    while True:
+        logging.info('Background service heartbeat: still running.')
+        # Increment a Prometheus metric for background ticks
+        if 'BACKGROUND_TICK' not in globals():
+            global BACKGROUND_TICK
+            BACKGROUND_TICK = Counter('background_service_ticks_total', 'Total ticks of the background service')
+        BACKGROUND_TICK.inc()
+        time.sleep(10)
+
 if __name__ == '__main__':
+    # Set up logging to stdout for Docker/Grafana visibility
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+    # Start background service thread
+    threading.Thread(target=background_service, daemon=True).start()
     # Create templates directory if it doesn't exist
     os.makedirs('templates', exist_ok=True)
     app.run(debug=True)
