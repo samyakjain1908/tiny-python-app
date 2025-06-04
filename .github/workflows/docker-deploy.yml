@@ -62,7 +62,7 @@ jobs:
             docker stop my-python-app || true
             docker rm my-python-app || true
             # Run the new container, mapping port 80 on the VM to port 5000 in the container
-            docker run -d --name my-python-app \
+            docker run -d --restart unless-stopped --name my-python-app \
               -p 80:5000 \
               -e OPENWEATHER_API_KEY=${{ secrets.OPENWEATHER_API_KEY }} \
               -e API_NINJAS_QUOTES_KEY_BASE64=${{ secrets.API_NINJAS_QUOTES_KEY_BASE64 }} \
